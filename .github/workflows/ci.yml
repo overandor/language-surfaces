@@ -1,0 +1,187 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        language: [python, javascript, rust, typescript]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      if: matrix.language == 'python'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install Python linting
+      if: matrix.language == 'python'
+      run: |
+        pip install flake8 black mypy pytest
+    
+    - name: Python Lint
+      if: matrix.language == 'python'
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        black --check .
+        mypy .
+    
+    - name: Set up Node.js
+      if: matrix.language == 'javascript' || matrix.language == 'typescript'
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install JavaScript linting
+      if: matrix.language == 'javascript' || matrix.language == 'typescript'
+      run: |
+        npm install -g eslint prettier
+    
+    - name: JavaScript Lint
+      if: matrix.language == 'javascript' || matrix.language == 'typescript'
+      run: |
+        eslint .
+        prettier --check .
+    
+    - name: Set up Rust
+      if: matrix.language == 'rust'
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        components: rustfmt, clippy
+    
+    - name: Rust Lint
+      if: matrix.language == 'rust'
+      run: |
+        cargo fmt --all -- --check
+        cargo clippy -- -D warnings
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        language: [python, javascript, rust]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      if: matrix.language == 'python'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install Python dependencies
+      if: matrix.language == 'python'
+      run: |
+        pip install pytest pytest-cov
+    
+    - name: Python Tests
+      if: matrix.language == 'python'
+      run: |
+        pytest --cov=. --cov-report=xml
+    
+    - name: Set up Node.js
+      if: matrix.language == 'javascript'
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install JavaScript dependencies
+      if: matrix.language == 'javascript'
+      run: |
+        npm install
+    
+    - name: JavaScript Tests
+      if: matrix.language == 'javascript'
+      run: |
+        npm test
+    
+    - name: Set up Rust
+      if: matrix.language == 'rust'
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+    
+    - name: Rust Tests
+      if: matrix.language == 'rust'
+      run: |
+        cargo test --verbose
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        language: [python, javascript, rust]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      if: matrix.language == 'python'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Python Build
+      if: matrix.language == 'python'
+      run: |
+        pip install build
+        python -m build
+    
+    - name: Set up Node.js
+      if: matrix.language == 'javascript'
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: JavaScript Build
+      if: matrix.language == 'javascript'
+      run: |
+        npm install
+        npm run build
+    
+    - name: Set up Rust
+      if: matrix.language == 'rust'
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+    
+    - name: Rust Build
+      if: matrix.language == 'rust'
+      run: |
+        cargo build --release
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
