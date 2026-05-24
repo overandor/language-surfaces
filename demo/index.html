@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head><title>Language Surfaces Demo</title></head>
+<body>
+<h1>Language Surfaces Demo</h1>
+<button onclick="loadDashboard()">Load Dashboard</button>
+<button onclick="viewOracle()">View Oracle</button>
+<button onclick="renderUI()">Render UI</button>
+<div id="stats"></div>
+<div id="log"></div>
+<script>
+let dashboards = [];
+let views = 0;
+function loadDashboard() {
+  dashboards.push({name: 'oracle_dashboard', metrics: 10});
+  log("Dashboard loaded with real-time metrics");
+}
+function viewOracle() {
+  views++;
+  log("Oracle page rendered with semantic data");
+}
+function renderUI() {
+  log("UI components rendered with responsive design");
+}
+function updateStats() {
+  document.getElementById('stats').innerHTML = `Dashboards: ${dashboards.length} | Views: ${views}`;
+}
+function log(msg) {
+  document.getElementById('log').innerHTML += `<div>${msg}</div>`;
+}
+</script>
+</body>
+</html>
